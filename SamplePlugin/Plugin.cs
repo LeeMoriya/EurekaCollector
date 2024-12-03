@@ -1,24 +1,28 @@
-﻿using Dalamud.Game.Command;
+using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using SamplePlugin.Windows;
+using EurekaCollector.Windows;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using System.ComponentModel;
 
-namespace SamplePlugin;
+namespace EurekaCollector;
 
 public sealed class Plugin : IDalamudPlugin
 {
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] public static IDataManager DataManager { get; private set; } = null!;
 
-    private const string CommandName = "/pmycommand";
+
+    private const string CommandName = "/eurekacollector";
 
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("EurekaCollector");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
 
@@ -37,7 +41,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "Opens the Eureka Collector interface"
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -48,6 +52,11 @@ public sealed class Plugin : IDalamudPlugin
 
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+    }
+
+    public void ScanInventory()
+    {
+        
     }
 
     public void Dispose()

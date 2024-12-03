@@ -1,0 +1,13 @@
+{
+    "Author": "LeeMoriya",
+    "Name": "Eureka Collector",
+    "Punchline": "A tool for tracking the collection of Eureka relics, armor and other related items",
+    "Description": "A tool for tracking the collection of Eureka relics, armor and other related items",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "eureka",
+        "collector",
+        "tracker",
+        "relic"
+    ]
+}
