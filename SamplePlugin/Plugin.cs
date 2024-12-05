@@ -131,18 +131,20 @@ public sealed class Plugin : IDalamudPlugin
 
         for (int i = 0; i < 2; i++)
         {
-            var items = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), $"SaddleBag{i + 1}"));
-            var premiumItems = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), $"PremiumSaddleBag{i + 1}"));
+            var saddleBagTypes = new[]
+            {
+                $"SaddleBag{i + 1}",
+                $"PremiumSaddleBag{i + 1}"
+            };
 
-            for (var index = 0; index < items.Length; index++)
+            foreach (var bagType in saddleBagTypes)
             {
-                var item = items[index];
-                itemIds.Add(item.ItemId);
-            }
-            for (var index = 0; index < premiumItems.Length; index++)
-            {
-                var item = premiumItems[index];
-                itemIds.Add(item.ItemId);
+                var items = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), bagType));
+
+                foreach (var item in items)
+                {
+                    itemIds.Add(item.ItemId);
+                }
             }
         }
 
