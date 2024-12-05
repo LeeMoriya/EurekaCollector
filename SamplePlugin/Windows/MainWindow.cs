@@ -1,20 +1,13 @@
+using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using ImGuiNET;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Interface.Internal;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
-using Dalamud.IoC;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using ImGuiNET;
-using Lumina;
-using Lumina.Excel.Sheets;
-using static System.Net.Mime.MediaTypeNames;
-using static EurekaCollector.Windows.MainWindow.EurekaData;
+using static EurekaCollector.Windows.EurekaData;
 
 namespace EurekaCollector.Windows;
 
@@ -43,100 +36,228 @@ public class MainWindow : Window, IDisposable
 
     public unsafe void CheckMainInventory()
     {
-        var currentTab = new InventoryItem[35];
+        List<uint> itemIds = new List<uint>();
 
         for (int tab = 0; tab < 4; tab++)
         {
             for (int i = 0; i < 35; i++)
             {
-                currentTab[i] = *InventoryManager.Instance()->GetInventorySlot((InventoryType)tab, i);
-                foreach (var kvp in weaponTracker.Keys)
+                var currentItem = *InventoryManager.Instance()->GetInventorySlot((InventoryType)tab, i);
+                itemIds.Add(currentItem.ItemId);
+
+            }
+        }
+
+        foreach (var kvp in weaponTracker.Keys)
+        {
+            foreach (var item in weaponTracker[kvp])
+            {
+                for (int i = 0; i < itemIds.Count; i++)
                 {
-                    foreach (var item in weaponTracker[kvp])
+                    if (itemIds[i] == item.itemId)
                     {
-                        if (currentTab[i].ItemId == item.itemId)
-                        {
-                            item.obtained = true;
-                        }
+                        item.obtained = true;
                     }
                 }
             }
         }
-
-        UpdateWeaponCollection();
     }
 
-    public void UpdateWeaponCollection()
+    public unsafe void CheckSaddlebags()
     {
-        foreach (var kvp in weaponTracker)
+        List<uint> itemIds = new List<uint>();
+
+        for (int page = 1; page <= 2; page++)
         {
-            bool progress = false;
-            for (int i = weaponTracker.Values.Count; i >= 0; i--)
+            InventoryType inventoryType = (InventoryType)Enum.Parse(typeof(InventoryType), $"SaddleBag{page}");
+            for (int i = 0; i < 35; i++)
             {
-                if (kvp.Value.ElementAt(i).obtained)
+                var currentItem = *InventoryManager.Instance()->GetInventorySlot(inventoryType, i);
+                itemIds.Add(currentItem.ItemId);
+            }
+            InventoryType premiumInventoryType = (InventoryType)Enum.Parse(typeof(InventoryType), $"PremiumSaddleBag{page}");
+            for (int i = 0; i < 35; i++)
+            {
+                var currentItem = *InventoryManager.Instance()->GetInventorySlot(premiumInventoryType, i);
+                itemIds.Add(currentItem.ItemId);
+            }
+        }
+
+        foreach (var kvp in weaponTracker.Keys)
+        {
+            foreach (var item in weaponTracker[kvp])
+            {
+                for (int i = 0; i < itemIds.Count; i++)
                 {
-                    progress = true;
-                }
-                else if (progress)
-                {
-                    kvp.Value.ElementAt(i).obtained = true;
+                    if (itemIds[i] == item.itemId)
+                    {
+                        item.obtained = true;
+                    }
                 }
             }
         }
     }
 
-    public override void Draw()
+    public unsafe void CheckArmoryChest()
     {
-        try
+        List<uint> itemIds = new List<uint>();
+
+        var armoryInventoryTypes = new Dictionary<InventoryType, int>
         {
-            CheckMainInventory();
-        }
-        catch(Exception ex)
+            { InventoryType.ArmoryMainHand, 50 },
+            { InventoryType.ArmoryOffHand, 35 },
+            { InventoryType.ArmoryHead, 35 },
+            { InventoryType.ArmoryBody, 35 },
+            { InventoryType.ArmoryHands, 35 },
+            { InventoryType.ArmoryLegs, 35 },
+            { InventoryType.ArmoryFeets, 35 },
+            { InventoryType.ArmoryEar, 35 },
+            { InventoryType.ArmoryWrist, 35 },
+            { InventoryType.ArmoryNeck, 35 },
+            { InventoryType.ArmoryRings, 50 }
+        };
+
+        foreach (var kvp in armoryInventoryTypes)
         {
-            
+            InventoryType inventoryType = kvp.Key;
+            int slotCount = kvp.Value;
+
+            for (int i = 0; i < slotCount; i++)
+            {
+                var currentItem = *InventoryManager.Instance()->GetInventorySlot(inventoryType, i);
+                itemIds.Add(currentItem.ItemId);
+            }
         }
 
-        // Start the tab bar
+        foreach (var kvp in weaponTracker.Keys)
+        {
+            foreach (var item in weaponTracker[kvp])
+            {
+                for (int i = 0; i < itemIds.Count; i++)
+                {
+                    if (itemIds[i] == item.itemId)
+                    {
+                        item.obtained = true;
+                    }
+                }
+            }
+        }
+    }
+
+
+    
+
+    public override void Draw()
+    {
+        //try
+        //{
+        CheckMainInventory();
+        CheckSaddlebags();
+        CheckArmoryChest();
+        UpdateWeaponCollection();
+        //}
+        //catch (Exception ex)
+        //{
+
+        //}
+
+        ImGui.PushStyleColor(ImGuiCol.TabActive, new Vector4(0.4f, 0.4f, 0.4f, 1f));
+        ImGui.PushStyleColor(ImGuiCol.TabUnfocusedActive, new Vector4(0.4f, 0.4f, 0.4f, 1f));
         if (ImGui.BeginTabBar("TabBar"))
         {
             // Weapons Tab
             if (ImGui.BeginTabItem("Weapons"))
             {
+                ImGui.Text("Open the inventories where your weapons are stored to update the collection");
                 if (ImGui.BeginTabBar("WeaponsTabBar"))
                 {
+                    ImGui.PopStyleColor(2);
+                    var itemSheet = Plugin.DataManager.GetExcelSheet<Item>();
+
                     for (int i = 0; i < weaponTracker.Count; i++)
                     {
-                        if (ImGui.BeginTabItem(weaponTracker.ElementAt(i).Key))
-                        {
-                            for (int s = 0; s < weaponTracker.ElementAt(i).Value.Count; s++)
-                            {
-                                if (weaponTracker.ElementAt(i).Value.Count > 2)
-                                {
-                                    string itemName = Plugin.DataManager.GetExcelSheet<Item>().GetRow((uint)weaponTracker.ElementAt(i).Value[s].itemId).Singular.ExtractText();
+                        var weaponEntry = weaponTracker.ElementAt(i);
 
-                                    ImGui.PushStyleColor(ImGuiCol.Text, weaponTracker.ElementAt(i).Value[s].obtained ? new Vector4(0.2f, 1f, 0.2f, 1f) : new Vector4(0.9f, 0.1f, 0.1f, 1f));
+                        ImGui.PushStyleColor(ImGuiCol.Tab, GetJobColor(i, false));
+                        ImGui.PushStyleColor(ImGuiCol.TabActive, GetJobColor(i, true));
+                        ImGui.PushStyleColor(ImGuiCol.TabHovered, GetJobColor(i, true));
+                        ImGui.PushStyleColor(ImGuiCol.MenuBarBg, GetJobColor(i, true));
+
+                        if (ImGui.BeginTabItem(weaponEntry.Key))
+                        {
+                            for (int s = 0; s < weaponEntry.Value.Count; s++)
+                            {
+                                var weaponInfo = weaponEntry.Value[s];
+
+                                if (weaponEntry.Value.Count > 2)
+                                {
+                                    var itemRow = itemSheet.GetRow((uint)weaponInfo.itemId);
+                                    string itemName = itemRow.Singular.ExtractText();
+
+                                    ImGui.PushStyleColor(ImGuiCol.Text, weaponInfo.obtained ? new Vector4(0.2f, 1f, 0.2f, 1f) : new Vector4(0.9f, 0.1f, 0.1f, 1f));
                                     ImGui.Text(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(itemName.ToLower()));
                                     ImGui.PopStyleColor();
                                 }
                             }
                             ImGui.EndTabItem();
                         }
+
+                        ImGui.PopStyleColor(4);
                     }
+
                     ImGui.EndTabBar();
                 }
+
+            }
+            if (ImGui.BeginTabItem("Armor"))
+            {
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Logograms"))
+            {
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Magicite"))
+            {
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Items"))
+            {
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Settings"))
+            {
+                ImGui.EndTabItem();
             }
 
             // End the tab bar
             ImGui.EndTabBar();
         }
     }
-
-    public static class EurekaData
+}
+public static class EurekaData
+{
+    public static Vector4 GetJobColor(int index, bool active)
     {
-        public static string[] validJobs =
-        [
-            //Tanks
-            "WAR",
+        float alpha = active ? 1f : 0.5f;
+        if (index < 3)
+        {
+            return new Vector4(0.2f, 0.4f, 0.8f, alpha);
+        }
+        else if (index < 6)
+        {
+            return new Vector4(0.2f, 0.7f, 0.2f, alpha);
+        }
+        else
+        {
+            return new Vector4(0.8f, 0.2f, 0.2f, alpha);
+        }
+    }
+
+    public static string[] validJobs =
+    [
+        //Tanks
+        "WAR",
             "PLD",
             "DRK",
             //Healers
@@ -155,9 +276,9 @@ public class MainWindow : Window, IDisposable
             "BLM",
             "SMN",
             "RDM"
-        ];
+    ];
 
-        public static Dictionary<string, int[]> relicIds = new Dictionary<string, int[]>()
+    public static Dictionary<string, int[]> relicIds = new Dictionary<string, int[]>()
         {
             //Antiquated, Base, +1, +2, Anemos, Pagos, +1, Elemental, +1, +2, Pyros, Hydatos, +1 Base-Eureka, Eureka, Physeos
             {"WAR", new []{ 17819, 21944, 21960, 21976, 21992, 22927, 22943, 22959, 24041, 24057, 24073, 24645, 24661, 24677, 24693, 24709 } },
@@ -182,34 +303,49 @@ public class MainWindow : Window, IDisposable
 
         };
 
-        public static Dictionary<string, List<RelicWeapon>> weaponTracker = GenerateRelicWeapons();
+    public static Dictionary<string, List<RelicWeapon>> weaponTracker = GenerateRelicWeapons();
 
-        public static Dictionary<string, List<RelicWeapon>> GenerateRelicWeapons()
+    public static Dictionary<string, List<RelicWeapon>> GenerateRelicWeapons()
+    {
+        var weaponTracker = new Dictionary<string, List<RelicWeapon>>();
+        foreach (var kvp in relicIds)
         {
-            var weaponTracker = new Dictionary<string, List<RelicWeapon>>();
-            foreach (var kvp in relicIds)
+            List<RelicWeapon> weapons = new List<RelicWeapon>();
+            for (int i = 0; i < kvp.Value.Length; i++)
             {
-                List<RelicWeapon> weapons = new List<RelicWeapon>();
-                for (int i = 0; i < kvp.Value.Length; i++)
-                {
-                    RelicWeapon weapon = new RelicWeapon() { currentStep = i, itemId = kvp.Value[i] };
-                    weapons.Add(weapon);
-                }
-                weaponTracker.Add(kvp.Key, weapons);
+                RelicWeapon weapon = new RelicWeapon() { currentStep = i, itemId = kvp.Value[i] };
+                weapons.Add(weapon);
             }
-            return weaponTracker;
+            weaponTracker.Add(kvp.Key, weapons);
         }
+        return weaponTracker;
+    }
 
-
-
-        public class RelicWeapon()
+    public static void UpdateWeaponCollection()
+    {
+        //If a relic was found, mark all previous steps as completed
+        foreach (var kvp in weaponTracker)
         {
-            public bool obtained;
-            public int itemId;
-            public int currentStep;
-            public string name = "null";
+            bool progress = false;
+            for (int i = weaponTracker.Values.Count; i >= 0; i--)
+            {
+                if (kvp.Value.ElementAt(i).obtained)
+                {
+                    progress = true;
+                }
+                else if (progress)
+                {
+                    kvp.Value.ElementAt(i).obtained = true;
+                }
+            }
         }
     }
 
-
+    public class RelicWeapon()
+    {
+        public bool obtained;
+        public int itemId;
+        public int currentStep;
+        public string name = "null";
+    }
 }

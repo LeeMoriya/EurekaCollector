@@ -1,12 +1,19 @@
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System.IO;
-using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using Dalamud.Plugin.Services;
 using EurekaCollector.Windows;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using System.ComponentModel;
+using Serilog;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using static EurekaCollector.Windows.EurekaData;
+using Dalamud.Game.Inventory;
 
 namespace EurekaCollector;
 
@@ -16,6 +23,8 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] public static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] public static IGameInventory InventoryManager { get; private set; } = null!;
+    [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
 
 
     private const string CommandName = "/eurekacollector";
@@ -25,6 +34,8 @@ public sealed class Plugin : IDalamudPlugin
     public readonly WindowSystem WindowSystem = new("EurekaCollector");
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
+
+    public static Dalamud.Logging.Internal.ModuleLog log = new Dalamud.Logging.Internal.ModuleLog("EurekaCollector");
 
     public Plugin()
     {
@@ -52,11 +63,39 @@ public sealed class Plugin : IDalamudPlugin
 
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+
+        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "RetainerGrid0", CheckRetainerInventory);
     }
 
-    public void ScanInventory()
+    public unsafe void CheckRetainerInventory(AddonEvent type, AddonArgs args)
     {
-        
+        log.Information("Check Retainer");
+        List<uint> itemIds = new List<uint>();
+
+        for (int i = 0; i < 5; i++)
+        {
+            var items = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), $"RetainerPage{i + 1}"));
+            for (var index = 0; index < items.Length; index++)
+            {
+                var item = items[index];
+                itemIds.Add(item.ItemId);
+            }
+        }
+
+        foreach (var kvp in weaponTracker.Keys)
+        {
+            foreach (var item in weaponTracker[kvp])
+            {
+                for (int i = 0; i < itemIds.Count; i++)
+                {
+                    if (itemIds[i] == item.itemId)
+                    {
+                        item.obtained = true;
+                    }
+                }
+            }
+        }
+        UpdateWeaponCollection();
     }
 
     public void Dispose()
@@ -67,6 +106,7 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
+        AddonLifecycle.UnregisterListener(AddonEvent.PostRefresh, "RetainerGrid0", CheckRetainerInventory);
     }
 
     private void OnCommand(string command, string args)
