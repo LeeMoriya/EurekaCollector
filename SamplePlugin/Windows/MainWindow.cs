@@ -115,26 +115,19 @@ public class MainWindow : Window, IDisposable
                                     var weaponInfo = weaponEntry.Value[s];
                                     var itemRow = itemSheet.GetRow((uint)weaponInfo.itemId);
 
-                                    // Retrieve item icon and name
                                     GameIconLookup lookup = new GameIconLookup(itemRow.Icon, false, true);
                                     var icon = Plugin.TextureProvider.GetFromGameIcon(lookup);
                                     string itemName = itemRow.Singular.ExtractText();
 
-                                    // Calculate the button width to match the list box
-                                    float buttonWidth = ImGui.GetContentRegionAvail().X; // Full available width
+                                    float buttonWidth = ImGui.GetContentRegionAvail().X; 
 
-                                    // Check if the button is hovered and apply color changes
                                     Vector4 hoverColor = weaponInfo.obtained ? new Vector4(0.13333334f, 0.54509807f, 0.13333334f, 0.5f) : new Vector4(0.2f, 0.2f, 0.2f, 0.5f);
-                                    bool isHovered = false;
-
-                                    // Push the hover color only for the hovered button
 
                                     ImGui.PushStyleColor(ImGuiCol.Text, weaponInfo.obtained ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f));
                                     ImGui.PushStyleColor(ImGuiCol.Button, weaponInfo.obtained ? new Vector4(0.13333334f, 0.54509807f, 0.13333334f, 0.3f) : new Vector4(0f, 0f, 0f, 0.2f));
                                     ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.8f, 0.8f, 0.8f, 1f));
                                     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, hoverColor);
 
-                                    // Draw the invisible button (full width)
                                     if (ImGui.Button($"##Btn_{weaponInfo.itemId}", new Vector2(buttonWidth, 50f)))
                                     {
                                         jumpTo = s;
@@ -143,8 +136,7 @@ public class MainWindow : Window, IDisposable
 
                                     ImGui.PopStyleColor(3);
 
-                                    // Render the icon and text over the button
-                                    ImGui.SameLine(10f); // Add padding for the icon
+                                    ImGui.SameLine(10f); 
                                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5f);
                                     ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, new Vector2(40f, 40f), new Vector2(0f, 0f), new Vector2(1f, 1f), weaponInfo.obtained ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f));
                                     ImGui.SameLine();
