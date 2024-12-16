@@ -74,7 +74,8 @@ public class MainWindow : Window, IDisposable
                         ImGui.PushStyleColor(ImGuiCol.TabHovered, GetJobColor(i, true));
                         ImGui.PushStyleColor(ImGuiCol.MenuBarBg, GetJobColor(i, true));
 
-                        if (ImGui.BeginTabItem($"{weaponEntry.Key}"))
+                        string tabName = $"{weaponEntry.Key}{(weaponEntry.Value.Last().obtained ? "  ✓" : "")}";
+                        if (ImGui.BeginTabItem(tabName))
                         {
                             if(lastTab != weaponEntry.Key)
                             {
@@ -89,7 +90,7 @@ public class MainWindow : Window, IDisposable
                             {
                                 for (int s = 0; s < weaponEntry.Value.Count; s++)
                                 {
-                                    float centerPos = (ImGui.GetColumnWidth() * 0.5f);
+                                    float centerPos = ImGui.GetColumnWidth() * 0.5f;
                                     if (s == 0) //Anemos
                                     {
                                         string zone = "Anemos";
@@ -203,8 +204,20 @@ public class MainWindow : Window, IDisposable
                                                 ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, new Vector2(40f, 40f));
                                                 if (ImGui.IsItemHovered())
                                                 {
+                                                    Vector2 mousePos = ImGui.GetMousePos();
+
+                                                    string tooltipText = $"{itemName}\n\n{GetItemDesc(stepInfo.itemReqs.ElementAt(r).Key)}";
+                                                    Vector2 textSize = ImGui.CalcTextSize(tooltipText);
+
+                                                    float tooltipWidth = textSize.X + 20;
+                                                    float tooltipHeight = textSize.Y + 20;
+                                                    Vector2 tooltipPos = new Vector2(mousePos.X - tooltipWidth / 2, mousePos.Y + 20);
+
+                                                    ImGui.SetNextWindowPos(tooltipPos);
+                                                    ImGui.SetNextWindowSize(new Vector2(tooltipWidth, tooltipHeight));
+
                                                     ImGui.BeginTooltip();
-                                                    ImGui.Text($"{itemName}\n\n{GetItemDesc(stepInfo.itemReqs.ElementAt(r).Key)}");
+                                                    ImGui.Text(tooltipText);
                                                     ImGui.EndTooltip();
                                                 }
                                                 string quantity = $"x{stepInfo.itemReqs.ElementAt(r).Value.ToString()}";
