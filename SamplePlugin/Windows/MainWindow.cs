@@ -26,6 +26,7 @@ public class MainWindow : Window, IDisposable
     public float targetScrollY = -1.0f;
     public float currentScrollY = 0.0f;
     public float scrollSpeed = 7.0f;
+    public string lastTab = "";
     private Plugin Plugin;
 
     // We give this window a hidden ID using ##
@@ -73,6 +74,14 @@ public class MainWindow : Window, IDisposable
 
                         if (ImGui.BeginTabItem($"{weaponEntry.Key}"))
                         {
+                            if(lastTab != weaponEntry.Key)
+                            {
+                                jumpTo = -1;
+                                currentScrollY = 0f;
+                                targetScrollY = -1.0f;
+                            }
+                            lastTab = weaponEntry.Key;
+
                             ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(0.3f, 0.3f, 0.3f, 0.1f));
                             if (ImGui.BeginListBox($"##ListBox_{i}", new Vector2(300f, 500f)))
                             {
@@ -154,6 +163,8 @@ public class MainWindow : Window, IDisposable
 
                             if (ImGui.BeginListBox($"##{weaponEntry.Key}_Info", new Vector2(600f, 500f)))
                             {
+
+
                                 List<float> stepPositions = new List<float>();
                                 for (int t = 0; t < weaponEntry.Value.Count; t++)
                                 {
@@ -178,6 +189,7 @@ public class MainWindow : Window, IDisposable
                                             for (int r = 0; r < stepInfo.itemReqs.Count; r++)
                                             {
                                                 var itemRow = itemSheet.GetRow((uint)stepInfo.itemReqs.ElementAt(r).Key);
+                                                string itemName = itemRow.Name.ExtractText();
                                                 GameIconLookup lookup = new GameIconLookup(itemRow.Icon, false, true);
                                                 var icon = Plugin.TextureProvider.GetFromGameIcon(lookup);
 
@@ -190,7 +202,7 @@ public class MainWindow : Window, IDisposable
                                                 if (ImGui.IsItemHovered())
                                                 {
                                                     ImGui.BeginTooltip();
-                                                    ImGui.Text(GetItemDesc(stepInfo.itemReqs.ElementAt(r).Key));
+                                                    ImGui.Text($"{itemName}\n\n{GetItemDesc(stepInfo.itemReqs.ElementAt(r).Key)}");
                                                     ImGui.EndTooltip();
                                                 }
                                                 string quantity = $"x{stepInfo.itemReqs.ElementAt(r).Value.ToString()}";
@@ -280,7 +292,39 @@ public static class EurekaData
         }
         if (itemId == 21802)
         {
-            return "Achieve a gold rating in the FATE 'Wail in the Willows' by defeating the Notorious Monster, Pazuzu whilst elemental level 19 or higher.\nPazuzu is spawned by farming level 25 Shadow Wraiths outside it's arena, located at x:7.3, y:21.7";
+            return "Achieve a gold rating in the FATE 'Wail in the Willows' by defeating the Notorious Monster, Pazuzu whilst elemental level 19 or higher.\nPazuzu is spawned by farming level 25 Shadow Wraiths outside it's arena, located at X:7.3, Y:21.7\nThis Notorious Monster only spawns during the Gales weather";
+        }
+        if (itemId == 23309)
+        {
+            return "Obtain vitilized aether by killing Notorious Monsters and level-appropriate mobs.\nExchange the aether for Frosted Protean Crystals at the Crystal Forge located at X:6.1, Y:21.5.\nYou will need to drop down onto the ledge from above at X:8.7, Y:21.5";
+        }
+        if (itemId == 22976)
+        {
+            return "Obtained by defeating Notorious Monsters around Pagos";
+        }
+        if (itemId == 22975)
+        {
+            return "Achieve a gold rating in the FATE 'Louhi on Ice' by defeating the Notorious Monster, Louhi whilst elemental level 34 or higher.\nLouhi is spawned by farming level 40 Val Corpses around it's arena, located at X:35.7, Y:18.7\nTo reach this area you will need to drop down onto the ledge at X:32.0, Y:20.0\nThis Notorious Monster only spawns at night";
+        }
+        if (itemId == 24124)
+        {
+            return "Obtained by defeating Notorious Monsters around Pyros";
+        }
+        if (itemId == 24123)
+        {
+            return "Achieve a gold rating in the FATE 'Lost Epic' by defeating the Notorious Monster, Penthesilea whilst elemental level 49 or higher.\nPenthesilea is spawned by farming level 55 Val Bloodgliders outside it's arena, located at X:35.5, Y:6.1\nThis Notorious Monster only spawns during the Heat Waves weather";
+        }
+        if (itemId == 24807)
+        {
+            return "Obtained by defeating Notorious Monsters around Hydatos";
+        }
+        if (itemId == 24806)
+        {
+            return "Achieve a gold rating in the FATE 'Crystalline Provenance' by defeating the Notorious Monster, Provenance Watcher whilst elemental level 59 or higher.\nProvenance Watcher is spawned by farming level 65 Crystal Claws outside it's arena, located at X:32.8, Y:19.5\n";
+        }
+        if (itemId == 24808)
+        {
+            return "Obtained by opening Treasure Coffers found within The Baldesion Arsenal. See the Handbook tab for more information.\nThis step increases your weapon's effectiveness within Eureka zones and does not have any visual differences";
         }
         return "Obtained by completing your level 70 job quest. Can be re-purchased at any Calamity Salvager.";
     }
