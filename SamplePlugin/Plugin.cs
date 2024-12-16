@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.IO;
 using static EurekaCollector.Windows.EurekaData;
 using Dalamud.Game.Inventory;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 
 namespace EurekaCollector;
 
@@ -25,6 +26,9 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IDataManager DataManager { get; private set; } = null!;
     [PluginService] public static IGameInventory InventoryManager { get; private set; } = null!;
     [PluginService] public static IAddonLifecycle AddonLifecycle { get; private set; } = null!;
+    [PluginService] public static IClientState ClientState { get; private set; } = null!;
+
+
 
 
     private const string CommandName = "/eurekacollector";
