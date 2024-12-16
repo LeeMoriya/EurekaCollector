@@ -15,6 +15,7 @@ using static EurekaCollector.Windows.EurekaData;
 using System.IO;
 using System.Reflection;
 using Dalamud.Plugin;
+using System.Net.Http.Json;
 
 namespace EurekaCollector.Windows;
 
@@ -42,6 +43,7 @@ public class MainWindow : Window, IDisposable
         };
 
         Plugin = plugin;
+        Load();
     }
 
     public void Dispose() { }
@@ -474,7 +476,7 @@ public static class EurekaData
         return weaponTracker;
     }
 
-    public static void UpdateWeaponCollection()
+    public static void UpdateWeaponCollection(bool save)
     {
         //If a relic was found, mark all previous steps as completed
         foreach (var kvp in weaponTracker)
@@ -492,7 +494,10 @@ public static class EurekaData
                 }
             }
         }
-        Save();
+        if (save)
+        {
+            Save();
+        }
     }
 
     public static void Save()
@@ -501,13 +506,17 @@ public static class EurekaData
         List<int> weaponIDs = new List<int>();
         foreach(KeyValuePair<string, List<RelicWeapon>> job in weaponTracker)
         {
+            int lastObtained = -1;
             foreach(RelicWeapon weapon in job.Value)
             {
                 if (weapon.obtained)
                 {
-                    //Add obtained weapon IDs to list
-                    weaponIDs.Add(weapon.itemId);
+                    lastObtained = weapon.itemId; // We only need the ID of the last obtained relic
                 }
+            }
+            if(lastObtained != -1)
+            {
+                weaponIDs.Add(lastObtained);
             }
         }
 
@@ -528,7 +537,7 @@ public static class EurekaData
         }
         else
         {
-            return;
+            return; //Don't save if player is null
         }
 
         if(saveLocation != null)
@@ -540,7 +549,44 @@ public static class EurekaData
 
     public static void Load()
     {
+        string saveLocation = Plugin.PluginInterface.ConfigDirectory.FullName;
+        string characterName = "Player";
+        if (Plugin.ClientState.LocalPlayer != null)
+        {
+            characterName = Plugin.ClientState.LocalContentId.ToString();
+        }
+        else
+        {
+            return; //Can't load if player is null
+        }
 
+
+        string json = File.ReadAllText($"{saveLocation}{Path.DirectorySeparatorChar}SaveData_{characterName}.json");
+        var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+
+        if (data != null)
+        {
+            if (data.ContainsKey("Weapons") && data["Weapons"] != null)
+            {
+                var weapons = JsonConvert.DeserializeObject<List<int>>(data["Weapons"].ToString());
+
+                for (int i = 0; i < weapons.Count; i++)
+                {
+                    foreach (KeyValuePair<string, List<RelicWeapon>> job in weaponTracker)
+                    {
+                        foreach (RelicWeapon weapon in job.Value)
+                        {
+                            if (weapon.itemId == weapons[i])
+                            {
+                                weapon.obtained = true;
+                            }
+                        }
+                    }
+                }
+                UpdateWeaponCollection(false);
+            }
+        }
+        Plugin.log.Information("Finished loading Eureka Collection");
     }
 
     public static void Reset() //Clears collection from memory, preserving save data

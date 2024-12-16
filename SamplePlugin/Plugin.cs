@@ -125,7 +125,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
         }
-        UpdateWeaponCollection();
+        UpdateWeaponCollection(true);
     }
 
     public unsafe void CheckChocoboSaddlebagInventory(AddonEvent type, AddonArgs args)
@@ -165,7 +165,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
         }
-        UpdateWeaponCollection();
+        UpdateWeaponCollection(true);
     }
 
     public unsafe void CheckRetainerInventory(AddonEvent type, AddonArgs args)
@@ -196,7 +196,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
             }
         }
-        UpdateWeaponCollection();
+        UpdateWeaponCollection(true);
     }
 
     public void Dispose()
