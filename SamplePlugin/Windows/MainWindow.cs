@@ -28,13 +28,14 @@ public class MainWindow : Window, IDisposable
     public float currentScrollY = 0.0f;
     public float scrollSpeed = 7.0f;
     public string lastTab = "";
+
     private Plugin Plugin;
 
     // We give this window a hidden ID using ##
     // So that the user will see "My Amazing Window" as window title,
     // but for ImGui the ID is "My Amazing Window##With a hidden ID"
     public MainWindow(Plugin plugin, string goatImagePath)
-        : base("Eureka Collector##With a hidden ID", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+        : base("Eureka Collector##With a hidden ID", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoResize)
     {
         SizeConstraints = new WindowSizeConstraints
         {
@@ -77,7 +78,7 @@ public class MainWindow : Window, IDisposable
                         string tabName = $"{weaponEntry.Key}{(weaponEntry.Value.Last().obtained ? "  ✓" : "")}";
                         if (ImGui.BeginTabItem(tabName))
                         {
-                            if(lastTab != weaponEntry.Key)
+                            if (lastTab != weaponEntry.Key)
                             {
                                 jumpTo = -1;
                                 currentScrollY = 0f;
@@ -131,7 +132,7 @@ public class MainWindow : Window, IDisposable
                                     var icon = Plugin.TextureProvider.GetFromGameIcon(lookup);
                                     string itemName = itemRow.Singular.ExtractText();
 
-                                    float buttonWidth = ImGui.GetContentRegionAvail().X; 
+                                    float buttonWidth = ImGui.GetContentRegionAvail().X;
 
                                     Vector4 hoverColor = weaponInfo.obtained ? new Vector4(0.13333334f, 0.54509807f, 0.13333334f, 0.5f) : new Vector4(0.2f, 0.2f, 0.2f, 0.5f);
 
@@ -148,13 +149,43 @@ public class MainWindow : Window, IDisposable
 
                                     ImGui.PopStyleColor(3);
 
-                                    ImGui.SameLine(10f); 
+                                    ImGui.SameLine(10f);
                                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5f);
                                     ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, new Vector2(40f, 40f), new Vector2(0f, 0f), new Vector2(1f, 1f), weaponInfo.obtained ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f));
+
+                                    if (weaponInfo.shieldId > 0)
+                                    {
+                                        var shieldRow = itemSheet.GetRow((uint)weaponInfo.shieldId);
+                                        var shieldLookup = new GameIconLookup(shieldRow.Icon, false, true);
+                                        var shieldIcon = Plugin.TextureProvider.GetFromGameIcon(shieldLookup);
+                                        ImGui.SameLine(10f);
+                                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 50f);
+                                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5f);
+                                        ImGui.Image(shieldIcon.GetWrapOrEmpty().ImGuiHandle, new Vector2(40f, 40f), new Vector2(0f, 0f), new Vector2(1f, 1f), weaponInfo.obtained ? new Vector4(1f, 1f, 1f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f));
+                                    }
+
                                     ImGui.SameLine();
                                     ImGui.AlignTextToFramePadding();
                                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5f);
                                     ImGui.Text(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(itemName.ToLower()));
+
+                                    if(weaponInfo.shieldId > 0)
+                                    {
+                                        var shieldRow = itemSheet.GetRow((uint)weaponInfo.shieldId);
+                                        var shieldLookup = new GameIconLookup(shieldRow.Icon, false, true);
+                                        var shieldIcon = Plugin.TextureProvider.GetFromGameIcon(shieldLookup);
+                                        string shieldName = shieldRow.Singular.ExtractText();
+
+                                        float shieldTextSize = ImGui.CalcTextSize(shieldName).X * 0.5f;
+
+                                        ImGui.SameLine(10f);
+                                        ImGui.AlignTextToFramePadding();
+                                        ImGui.SetCursorPos(ImGui.GetCursorPos() + new Vector2(98f, 20f));
+
+                                        ImGui.PushStyleColor(ImGuiCol.Text, weaponInfo.obtained ? new Vector4(0.8f, 0.8f, 0.8f, 1f) : new Vector4(0.5f, 0.5f, 0.5f, 1f));
+                                        ImGui.Text(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(shieldName.ToLower()));
+                                        ImGui.PopStyleColor();
+                                    }
                                     ImGui.PopStyleColor();
                                 }
                                 ImGui.EndListBox();
@@ -200,7 +231,13 @@ public class MainWindow : Window, IDisposable
                                                 {
                                                     height = ImGui.GetCursorPos().Y;
                                                 }
-                                                ImGui.SetCursorPos(new Vector2(ImGui.GetColumnWidth() * 0.5f - 20f + (stepInfo.itemReqs.Count > 1 ? (60f * r) - (40f * stepInfo.itemReqs.Count * 0.5f) + (10f * stepInfo.itemReqs.Count * 0.5f) : 0f), height != 0f ? height : ImGui.GetCursorPosY()));
+
+                                                ImGui.SetCursorPos(new Vector2(ImGui.GetColumnWidth() * 0.5f - (stepInfo.itemReqs.Count >= 3 ? 35f : 20f) + //Get the center of the column, then shift left depending on req count
+                                                    (stepInfo.itemReqs.Count > 1 ? (60f * r) - 
+                                                    (40f * stepInfo.itemReqs.Count * 0.5f) + 
+                                                    (10f * stepInfo.itemReqs.Count * 0.5f) : 0f), 
+                                                    height != 0f ? height : ImGui.GetCursorPosY()));
+
                                                 ImGui.Image(icon.GetWrapOrEmpty().ImGuiHandle, new Vector2(40f, 40f));
                                                 if (ImGui.IsItemHovered())
                                                 {
@@ -221,7 +258,7 @@ public class MainWindow : Window, IDisposable
                                                     ImGui.EndTooltip();
                                                 }
                                                 string quantity = $"x{stepInfo.itemReqs.ElementAt(r).Value.ToString()}";
-                                                ImGui.SetCursorPosX(ImGui.GetColumnWidth() * 0.5f - ImGui.CalcTextSize(quantity).X * 0.5f + (stepInfo.itemReqs.Count > 1 ? (60f * r) - (40f * stepInfo.itemReqs.Count * 0.5f) + (10f * stepInfo.itemReqs.Count * 0.5f) : 0f));
+                                                ImGui.SetCursorPosX(ImGui.GetColumnWidth() * 0.5f - ImGui.CalcTextSize(quantity).X * 0.5f - (stepInfo.itemReqs.Count >= 3 ? 15f : 0f) + (stepInfo.itemReqs.Count > 1 ? (60f * r) - (40f * stepInfo.itemReqs.Count * 0.5f) + (10f * stepInfo.itemReqs.Count * 0.5f) : 0f));
                                                 ImGui.Text(quantity);
                                             }
                                         }
@@ -253,7 +290,7 @@ public class MainWindow : Window, IDisposable
                                 ImGui.EndListBox();
                             }
 
-                            ImGui.PopStyleColor(); 
+                            ImGui.PopStyleColor();
                             ImGui.EndTabItem();
                         }
 
@@ -273,7 +310,7 @@ public class MainWindow : Window, IDisposable
             if (ImGui.BeginTabItem("Items")) ImGui.EndTabItem();
             if (ImGui.BeginTabItem("Settings")) ImGui.EndTabItem();
 
-            ImGui.EndTabBar(); 
+            ImGui.EndTabBar();
         }
 
         ImGui.PopStyleColor(2);
@@ -301,7 +338,7 @@ public static class EurekaData
 
     public static string GetItemDesc(int itemId)
     {
-        if(itemId == 21801)
+        if (itemId == 21801)
         {
             return "Obtain Anemos Crystals by killing Notorious Monsters and exchange them with Gerolt.\nAlso rarely dropped by level-appropriate mobs.";
         }
@@ -361,6 +398,8 @@ public static class EurekaData
                 if (job == "PLD") //WIP - I can't remember how obtaining Sword and Shield works and if they have different requirements or not
                 {
                     stepInfo.itemReqs.Add(relicIds[job][0], 1);
+                    stepInfo.itemReqs.Add(pldShields[0], 1);
+
                     stepInfo.itemReqs.Add(21801, 100); // 100 Protean Crystals
                     break;
                 }
@@ -468,7 +507,11 @@ public static class EurekaData
         {"BLM", new []{ 21951, 21967, 21983, 21999, 22934, 22950, 22966, 24048, 24064, 24080, 24652, 24668, 24684, 24700, 24716 } },
         {"SMN", new []{ 21952, 21968, 21984, 22000, 22935, 22951, 22967, 24049, 24065, 24081, 24653, 24669, 24685, 24701, 24717 } },
         {"RDM", new []{ 21956, 21972, 21988, 22004, 22939, 22955, 22971, 24053, 24069, 24085, 24657, 24673, 24689, 24705, 24721 } },
+    };
 
+    public static List<int> pldShields = new List<int>()
+    {
+        21957,21973,21989,22005,22940,22956,22972,24054,24070,24086,24658,24674,24690,24706,24722
     };
 
     public static Dictionary<string, List<RelicWeapon>> weaponTracker = GenerateRelicWeapons();
@@ -482,6 +525,10 @@ public static class EurekaData
             for (int i = 0; i < kvp.Value.Length; i++)
             {
                 RelicWeapon weapon = new RelicWeapon() { currentStep = i, itemId = kvp.Value[i] };
+                if(kvp.Key == "PLD")
+                {
+                    weapon.shieldId = pldShields[i];
+                }
                 weapons.Add(weapon);
             }
             weaponTracker.Add(kvp.Key, weapons);
@@ -495,7 +542,7 @@ public static class EurekaData
         foreach (var kvp in weaponTracker)
         {
             bool progress = false;
-            for (int i = weaponTracker.Values.Count -1; i >= 0; i--)
+            for (int i = weaponTracker.Values.Count - 1; i >= 0; i--)
             {
                 if (kvp.Value.ElementAt(i).obtained)
                 {
@@ -517,17 +564,17 @@ public static class EurekaData
     {
         //Weapons
         List<int> weaponIDs = new List<int>();
-        foreach(KeyValuePair<string, List<RelicWeapon>> job in weaponTracker)
+        foreach (KeyValuePair<string, List<RelicWeapon>> job in weaponTracker)
         {
             int lastObtained = -1;
-            foreach(RelicWeapon weapon in job.Value)
+            foreach (RelicWeapon weapon in job.Value)
             {
                 if (weapon.obtained)
                 {
                     lastObtained = weapon.itemId; // We only need the ID of the last obtained relic
                 }
             }
-            if(lastObtained != -1)
+            if (lastObtained != -1)
             {
                 weaponIDs.Add(lastObtained);
             }
@@ -553,9 +600,9 @@ public static class EurekaData
             return; //Don't save if player is null
         }
 
-        if(saveLocation != null)
+        if (saveLocation != null)
         {
-            File.WriteAllText($"{saveLocation}{Path.DirectorySeparatorChar}SaveData_{characterName}.json",json);
+            File.WriteAllText($"{saveLocation}{Path.DirectorySeparatorChar}SaveData_{characterName}.json", json);
             Plugin.log.Information($"Saved Eureka Collection to: {saveLocation}{Path.DirectorySeparatorChar}SaveData_{characterName}.json");
         }
     }
@@ -618,5 +665,6 @@ public static class EurekaData
         public int itemId;
         public int currentStep;
         public string name = "null";
+        public int shieldId;
     }
 }

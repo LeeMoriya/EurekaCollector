@@ -68,12 +68,19 @@ public sealed class Plugin : IDalamudPlugin
         // Adds another button that is doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
 
-        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "InventoryGrid0E", CheckPlayerInventory);
-        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "RetainerGrid0", CheckRetainerInventory);
-        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "InventoryBuddy", CheckChocoboSaddlebagInventory);
+        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "InventoryGrid0E", PlayerInventoryEvent);
+        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "RetainerGrid0", RetainerInventoryEvent);
+        AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "InventoryBuddy", ChocoboSaddlebagInventoryEvent);
+
+        InventoryManager.ItemAdded += OnItemAddedToInventory;
     }
 
-    public unsafe void CheckPlayerInventory(AddonEvent type, AddonArgs args)
+    private void OnItemAddedToInventory(GameInventoryEvent type, Dalamud.Game.Inventory.InventoryEventArgTypes.InventoryEventArgs data)
+    {
+        CheckPlayerInventory();
+    }
+
+    public void CheckPlayerInventory()
     {
         log.Information("Check Player Inventory");
         List<uint> itemIds = new List<uint>();
@@ -128,7 +135,38 @@ public sealed class Plugin : IDalamudPlugin
         UpdateWeaponCollection(true);
     }
 
-    public unsafe void CheckChocoboSaddlebagInventory(AddonEvent type, AddonArgs args)
+    public void CheckRetainerInventory()
+    {
+        log.Information("Check Retainer");
+        List<uint> itemIds = new List<uint>();
+
+        for (int i = 0; i < 5; i++)
+        {
+            var items = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), $"RetainerPage{i + 1}"));
+            for (var index = 0; index < items.Length; index++)
+            {
+                var item = items[index];
+                itemIds.Add(item.ItemId);
+            }
+        }
+
+        foreach (var kvp in weaponTracker.Keys)
+        {
+            foreach (var item in weaponTracker[kvp])
+            {
+                for (int i = 0; i < itemIds.Count; i++)
+                {
+                    if (itemIds[i] == item.itemId)
+                    {
+                        item.obtained = true;
+                    }
+                }
+            }
+        }
+        UpdateWeaponCollection(true);
+    }
+
+    public void CheckSaddlebagInventory()
     {
         log.Information("Check Saddlebags");
         List<uint> itemIds = new List<uint>();
@@ -168,35 +206,20 @@ public sealed class Plugin : IDalamudPlugin
         UpdateWeaponCollection(true);
     }
 
-    public unsafe void CheckRetainerInventory(AddonEvent type, AddonArgs args)
+
+    public unsafe void PlayerInventoryEvent(AddonEvent type, AddonArgs args)
     {
-        log.Information("Check Retainer");
-        List<uint> itemIds = new List<uint>();
+        CheckPlayerInventory();
+    }
 
-        for (int i = 0; i < 5; i++)
-        {
-            var items = InventoryManager.GetInventoryItems((GameInventoryType)Enum.Parse(typeof(GameInventoryType), $"RetainerPage{i + 1}"));
-            for (var index = 0; index < items.Length; index++)
-            {
-                var item = items[index];
-                itemIds.Add(item.ItemId);
-            }
-        }
+    public unsafe void ChocoboSaddlebagInventoryEvent(AddonEvent type, AddonArgs args)
+    {
+        CheckSaddlebagInventory();
+    }
 
-        foreach (var kvp in weaponTracker.Keys)
-        {
-            foreach (var item in weaponTracker[kvp])
-            {
-                for (int i = 0; i < itemIds.Count; i++)
-                {
-                    if (itemIds[i] == item.itemId)
-                    {
-                        item.obtained = true;
-                    }
-                }
-            }
-        }
-        UpdateWeaponCollection(true);
+    public unsafe void RetainerInventoryEvent(AddonEvent type, AddonArgs args)
+    {
+        CheckRetainerInventory();
     }
 
     public void Dispose()
@@ -206,9 +229,9 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
         CommandManager.RemoveHandler(CommandName);
 
-        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "InventoryGrid0E", CheckRetainerInventory);
-        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "RetainerGrid0", CheckRetainerInventory);
-        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "InventoryBuddy", CheckRetainerInventory);
+        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "InventoryGrid0E", PlayerInventoryEvent);
+        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "RetainerGrid0", RetainerInventoryEvent);
+        AddonLifecycle.UnregisterListener(AddonEvent.PreRequestedUpdate, "InventoryBuddy", ChocoboSaddlebagInventoryEvent);
     }
 
     private void OnCommand(string command, string args)
@@ -218,7 +241,6 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     private void DrawUI() => WindowSystem.Draw();
-
     public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();
 }
